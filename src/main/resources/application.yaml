@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: wechat-bot
+  datasource:
+    url: jdbc:mysql://localhost:3306/chat_rebot?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+jasypt:
+  encryptor:
+    algorithm: PBEWithMD5AndDES
+openai:
+  api:
+    key: ENC(r/HoBHTGSnc7EKTROiw++jyrdX4DpWliXa6KAhRFXMfZhzKXeqSNg4KM1eoSPS3mxXdgg9H9CRTDmeVGRa5zbA==)  # 你的 OpenAI 密钥
+    url: https://api.openai-hk.com/v1
+    model-name: gpt-4o-mini
+    count: 2
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: boss.jieyin.wechatbot.model
+
+sign:
+  secret-key: ENC(B+YmZc/0jc3mk/0AU3jKQ6NSh0OlShoP0E3ejBWXW8pcnUsqw7GZV69KdvOnykMN)
+
+logging:
+  level:
+    root: info
+    boss.jieyin.wechatbot: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
+
+
