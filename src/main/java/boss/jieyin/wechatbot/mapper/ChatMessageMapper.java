@@ -25,12 +25,10 @@ public interface ChatMessageMapper {
     List<ChatMessage> findRecentMessagesBySessionId(@Param("sessionId") String sessionId,
                                                     @Param("limit") int limit);
 
-    @Select("""
-        SELECT * FROM chat_message
-        WHERE status = 0 
-        ORDER BY message_id ASC
-        LIMIT #{limit}
-    """)
+    @Select("SELECT * FROM chat_message " +
+            "WHERE status = 0 "+
+            "ORDER BY message_id ASC "+
+            "LIMIT #{limit}")
     List<ChatMessage> fetchPulledMessages(@Param("limit") int limit);
 
     void markMessagesAsPulled(@Param("ids") List<Long> ids);

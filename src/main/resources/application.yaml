@@ -4,14 +4,19 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/chat_rebot?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    # 生成的密码，打包前请放开注释
+    password: 'ENC(dACLo0JBSpU/UPCQvgFsz0xY4fnHmT5iV22rwpQYqmet3qchM2VWao5ZUh+eR6OL)'
+#    password: 'ENC(RcWxW8QNKpwzxxdfFjxyhMXza4KRZQbAMP+L2rbieWmDA7mhH/zImAJcIU3B8hsI)'
     driver-class-name: com.mysql.cj.jdbc.Driver
 jasypt:
   encryptor:
-    algorithm: PBEWithMD5AndDES
+    algorithm: PBEWithHmacSHA512AndAES_256
+    iv-generator-classname: org.jasypt.iv.RandomIvGenerator
+
 openai:
   api:
-    key: ENC(r/HoBHTGSnc7EKTROiw++jyrdX4DpWliXa6KAhRFXMfZhzKXeqSNg4KM1eoSPS3mxXdgg9H9CRTDmeVGRa5zbA==)  # 你的 OpenAI 密钥
+    key: 'ENC(VnJBkw2L1ODTbLgdO7gvd9LRGQfQg5eBMNhjD9ax6G5ZjbAETz1eqCB9/twifbFDGyxTC2HNmheLjvxe9D42G0etBeyNiOsDxYkj1OFQA8etBEn2iw6Wsg68jQCECk+3)'  # 你的 OpenAI 密钥
+#    key:
     url: https://api.openai-hk.com/v1
     model-name: gpt-4o-mini
     count: 2
@@ -20,8 +25,8 @@ mybatis:
   type-aliases-package: boss.jieyin.wechatbot.model
 
 sign:
-  secret-key: ENC(B+YmZc/0jc3mk/0AU3jKQ6NSh0OlShoP0E3ejBWXW8pcnUsqw7GZV69KdvOnykMN)
-
+  secret-key: 'ENC(h/8yoGkJjrkzF1mMa3diSMF0awGyfWPkfmYZHwyjtV3ANx1awZcrmKOvjnhC2ZN/ps8as0yqS7CWLhoxwoVXeICofxtZ3U4nUuWahGg+FDw=)'
+#  secret-key:
 logging:
   level:
     root: info

@@ -55,7 +55,7 @@ public class ChatService {
         List<Message> result = new ArrayList<>();
         for (ChatMessage chat : chatMessages) {
             Message msg = new Message();
-            msg.setMessage(chat.getUserInput());
+            msg.setMessage(chat.getModelReply());
             msg.setMsgType(chat.getMessageType());
             msg.setToUserId(chat.getUserId());
             msg.setSenderTime(String.valueOf(

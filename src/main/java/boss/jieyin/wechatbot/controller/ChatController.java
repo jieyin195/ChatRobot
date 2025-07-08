@@ -35,6 +35,7 @@ public class ChatController {
     }
 
     @PostMapping("/pull")
+    @CheckSign(value = false)
     public ResponseEntity<List<Message>> pull() {
         String bizNo = UUID.randomUUID().toString();
         log.debug("此次请求的单号:{}",bizNo);
@@ -43,6 +44,7 @@ public class ChatController {
     }
 
     @PostMapping("/confirm-status")
+    @CheckSign(value = false)
     public ResponseEntity<String> confirmStatus(@RequestBody List<MessageStatusItem> statusList) {
         chatService.confirmMessageStatus(statusList);
         return ResponseEntity.ok("状态已更新");
