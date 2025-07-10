@@ -1,3 +1,5 @@
+
+
 spring:
   application:
     name: wechat-bot
@@ -5,9 +7,17 @@ spring:
     url: jdbc:mysql://localhost:3306/chat_rebot?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
     # 生成的密码，打包前请放开注释
-    password: 'ENC(dACLo0JBSpU/UPCQvgFsz0xY4fnHmT5iV22rwpQYqmet3qchM2VWao5ZUh+eR6OL)'
-#    password: 'ENC(RcWxW8QNKpwzxxdfFjxyhMXza4KRZQbAMP+L2rbieWmDA7mhH/zImAJcIU3B8hsI)'
+#    password: 'ENC(dACLo0JBSpU/UPCQvgFsz0xY4fnHmT5iV22rwpQYqmet3qchM2VWao5ZUh+eR6OL)'
+    password: 'ENC(RcWxW8QNKpwzxxdfFjxyhMXza4KRZQbAMP+L2rbieWmDA7mhH/zImAJcIU3B8hsI)'
     driver-class-name: com.mysql.cj.jdbc.Driver
+  ai:
+    openai:
+      apiKey: 'ENC(VnJBkw2L1ODTbLgdO7gvd9LRGQfQg5eBMNhjD9ax6G5ZjbAETz1eqCB9/twifbFDGyxTC2HNmheLjvxe9D42G0etBeyNiOsDxYkj1OFQA8etBEn2iw6Wsg68jQCECk+3)'
+      baseUrl: https://api.openai-hk.com
+      chat:
+        options:
+          model: gpt-4o-mini
+
 jasypt:
   encryptor:
     algorithm: PBEWithHmacSHA512AndAES_256

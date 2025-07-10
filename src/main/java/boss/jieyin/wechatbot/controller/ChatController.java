@@ -2,7 +2,7 @@ package boss.jieyin.wechatbot.controller;
 
 import boss.jieyin.wechatbot.annotation.CheckSign;
 import boss.jieyin.wechatbot.pojo.ResponseEntity;
-import boss.jieyin.wechatbot.pojo.check.MessageStatusItem;
+import boss.jieyin.wechatbot.pojo.check.CheckRequest;
 import boss.jieyin.wechatbot.pojo.pull.Message;
 import boss.jieyin.wechatbot.pojo.send.ReportMessageRequest;
 import boss.jieyin.wechatbot.pojo.send.UserSessionInfo;
@@ -23,7 +23,6 @@ public class ChatController {
     private ChatService chatService;
 
     @PostMapping("/send")
-    @CheckSign(value = false)
     public ResponseEntity<List<UserSessionInfo>> chat(@RequestBody ReportMessageRequest reportMessageRequest) {
         // 用户存储和会员制验证
 
@@ -35,7 +34,7 @@ public class ChatController {
     }
 
     @PostMapping("/pull")
-    @CheckSign(value = false)
+    @CheckSign
     public ResponseEntity<List<Message>> pull() {
         String bizNo = UUID.randomUUID().toString();
         log.debug("此次请求的单号:{}",bizNo);
@@ -44,9 +43,9 @@ public class ChatController {
     }
 
     @PostMapping("/confirm-status")
-    @CheckSign(value = false)
-    public ResponseEntity<String> confirmStatus(@RequestBody List<MessageStatusItem> statusList) {
-        chatService.confirmMessageStatus(statusList);
+    @CheckSign
+    public ResponseEntity<String> confirmStatus(@RequestBody CheckRequest checkRequest) {
+        chatService.confirmMessageStatus(checkRequest.getSendMessage());
         return ResponseEntity.ok("状态已更新");
     }
 
