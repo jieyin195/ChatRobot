@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="boss.jieyin.wechatbot.mapper.ChatSessionMapper">
+    <resultMap id="BaseResultMap" type="boss.jieyin.wechatbot.model.ChatSession">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="model_name" property="modelName"/>
+        <result column="status" property="status"/>
+        <result column="last_active_time" property="lastActiveTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="findActiveSessionByUserId" resultType="boss.jieyin.wechatbot.model.ChatSession">
+        SELECT *
+        FROM chat_session
+        WHERE user_id = #{userId}
+          AND status = 1
+        ORDER BY created_at DESC LIMIT 1
+    </select>
+    <insert id="insert" parameterType="boss.jieyin.wechatbot.model.ChatSession">
+        INSERT INTO chat_session(user_id, session_id, model_name, status, created_at, updated_at, is_deleted)
+        VALUES (#{userId}, #{sessionId}, #{modelName}, #{status}, NOW(), NOW(), 0)
+    </insert>
+    <update id="updateLastActiveTime">
+        UPDATE chat_session
+        SET last_active_time = #{lastActiveTime},
+            updated_at       = NOW()
+        WHERE session_id = #{sessionId}
+    </update>
+    <update id="closeInactiveSessions">
+        UPDATE chat_session
+        SET status     = 0,
+            updated_at = NOW()
+        WHERE last_active_time &lt; #{timeoutThreshold}
+          AND status = 1
+    </update>
+    <select id="findBySessionIdAndUserId" resultType="boss.jieyin.wechatbot.model.ChatSession">
+        SELECT *
+        FROM chat_session
+        WHERE session_id = #{sessionId}
+          AND user_id = #{userId}
+          AND status = 1
+        ORDER BY created_at DESC LIMIT 1
+    </select>
+
+</mapper>
