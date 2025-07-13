@@ -8,6 +8,8 @@ import java.util.List;
 public class PullMessage {
     private String message;
     private Integer msgType;
+    private Integer chatType;
+    private String fromUserId;
     private String toUserId;
     private List<String> at;
     private String senderTime;

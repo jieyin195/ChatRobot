@@ -7,6 +7,5 @@ import java.util.List;
 
 @Data
 public class CheckRequest {
-    private User user;
     private List<MessageStatusItem> sendMessage;
 }

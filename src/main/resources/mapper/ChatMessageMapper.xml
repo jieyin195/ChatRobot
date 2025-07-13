@@ -8,8 +8,11 @@
     <resultMap id="BaseResultMap" type="boss.jieyin.wechatbot.model.ChatMessage">
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
+        <result column="group_id" property="groupId"/>
         <result column="session_id" property="sessionId"/>
         <result column="message_id" property="messageId"/>
+        <result column="robot_id" property="robotId"/>
+        <result column="chat_type" property="chatType"/>
         <result column="message_type" property="messageType"/>
         <result column="user_input" property="userInput"/>
         <result column="model_reply" property="modelReply"/>
@@ -28,8 +31,8 @@
     </select>
 
     <insert id="insert" parameterType="boss.jieyin.wechatbot.model.ChatMessage">
-        INSERT INTO chat_message(user_id, session_id, message_id, message_type, user_input, model_reply, model_name, status, created_at, updated_at)
-        VALUES(#{userId}, #{sessionId}, #{messageId}, #{messageType}, #{userInput}, #{modelReply}, #{modelName}, #{status}, NOW(), NOW())
+        INSERT INTO chat_message(user_id,group_id,session_id, message_id, robot_id,chat_type,message_type, user_input, model_reply, model_name, status, created_at, updated_at)
+        VALUES(#{userId},#{groupId}, #{sessionId}, #{messageId},#{robotId}, #{chatType},#{messageType}, #{userInput}, #{modelReply}, #{modelName}, #{status}, NOW(), NOW())
     </insert>
     <update id="markMessagesAsPulled">
         UPDATE chat_message

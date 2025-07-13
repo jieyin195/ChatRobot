@@ -6,21 +6,18 @@ import boss.jieyin.wechatbot.mapper.ChatSessionMapper;
 import boss.jieyin.wechatbot.mapper.UserMemberMapper;
 import boss.jieyin.wechatbot.model.ChatMessage;
 import boss.jieyin.wechatbot.model.ChatSession;
-import boss.jieyin.wechatbot.model.AIMessage;
 import boss.jieyin.wechatbot.pojo.check.MessageStatusItem;
 import boss.jieyin.wechatbot.pojo.member.UserMembership;
 import boss.jieyin.wechatbot.pojo.pull.PullMessage;
 import boss.jieyin.wechatbot.pojo.send.*;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.content.Content;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,26 +30,20 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+
 import org.springframework.ai.chat.messages.*;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class ChatService {
-    @Autowired
-    private ChatSessionMapper chatSessionMapper;
     @Autowired private ChatMessageMapper chatMessageMapper;
     @Autowired
     private MembershipService membershipService;
     @Autowired
     private UserMemberMapper userMemberMapper;
-    @Autowired
-    private OpenAiService openAiService;
     @Value("${openai.api.model-name}")
     private String modelName;
-    @Value("${openai.api.count}")
-    private int count;
 
     @Autowired
     @Lazy
@@ -63,8 +54,6 @@ public class ChatService {
 
     @Autowired
     private CacheService cacheService;
-
-    private final Map<String, List<Message>> contextMap = new HashMap<>();
 
     private String getCurrentTimeText() {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 EEEE HH:mm"));
@@ -85,8 +74,8 @@ public class ChatService {
         """, currentTime);
     }
         @Transactional
-    public List<PullMessage> pullPendingMessages(int limit) {
-        List<ChatMessage> chatMessages = chatMessageMapper.fetchPulledMessages(limit);
+    public List<PullMessage> pullPendingMessages(int limit, String robotId) {
+        List<ChatMessage> chatMessages = chatMessageMapper.fetchPulledMessages(limit,robotId);
         if (!chatMessages.isEmpty()) {
             List<Long> ids = chatMessages.stream().map(ChatMessage::getId).toList();
             chatMessageMapper.markMessagesAsPulled(ids);
@@ -96,7 +85,13 @@ public class ChatService {
             PullMessage msg = new PullMessage();
             msg.setMessage(chat.getModelReply());
             msg.setMsgType(chat.getMessageType());
-            msg.setToUserId(chat.getUserId());
+            msg.setChatType(chat.getChatType());
+            if(chat.getChatType()==1){
+                msg.setFromUserId(chat.getUserId());
+                msg.setToUserId(chat.getGroupId());
+            }else{
+                msg.setToUserId(chat.getUserId());
+            }
             msg.setSenderTime(String.valueOf(
                     chat.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             ));
@@ -109,14 +104,14 @@ public class ChatService {
     }
     // 在 chat() 方法中调用
     // 主调方法
-    public List<UserSessionInfo> chat(ReportMessageRequest request) {
+    public List<UserSessionInfo> chat(ReportMessageRequest request, HttpServletRequest res) {
         List<BizRequest> bizList = request.getBizRequest();
         if (bizList == null || bizList.isEmpty()) return Collections.emptyList();
 
         ExecutorService executor = Executors.newFixedThreadPool(5); // 控制并发线程池
 
         List<CompletableFuture<UserSessionInfo>> futures = bizList.stream()
-                .map(biz -> CompletableFuture.supplyAsync(() -> self.handleBizRequest(biz), executor)
+                .map(biz -> CompletableFuture.supplyAsync(() -> self.handleBizRequest(biz,res), executor)
                 ).toList();
 
         List<UserSessionInfo> result = futures.stream()
@@ -129,11 +124,12 @@ public class ChatService {
 
     // 子线程内执行，带事务
     @Transactional
-    public UserSessionInfo handleBizRequest(BizRequest biz) {
+    public UserSessionInfo handleBizRequest(BizRequest biz, HttpServletRequest request) {
         String userId = biz.getFromUserId();
         String input = biz.getContent();
         String sessionId = biz.getSessionId();
         String referMsg = biz.getReferMsg().getContent();
+        String robotId = request.getHeader("robotId");
         boolean isNewSession = (sessionId == null || sessionId.isBlank());
         if (isNewSession) {
             sessionId = UUID.randomUUID().toString(); // 自动生成新会话 ID
@@ -141,16 +137,21 @@ public class ChatService {
 
         // 2. 取出上下文（或新建）
         List<Message> context = cacheService.getContext(userId, sessionId);
-        context.add(0,new SystemMessage(buildSystemPrompt(getCurrentTimeText())));
+        String promptStr = buildSystemPrompt(getCurrentTimeText());
 
         // 如果有引用消息，先把它加进去，格式化成辅助提示
         if (StringUtils.isNotBlank(referMsg)) {
             // 格式化引用文本，放在用户消息之前作为系统辅助内容
             String refText = "注意：用户引用了之前的一句话，内容是：\"" + referMsg.trim() + "\"。请结合这句话理解用户的新问题。";
-
+            promptStr += "\n\n" + refText;
             // 也可以用 SystemMessage 或 UserMessage 里加注释，常用做法是用 SystemMessage
-            context.add(new SystemMessage(refText));
         }
+        UserMembership member = membershipService.getMembership(userId);
+        if(member.getAvailableTimes()<10){
+            String remindText = String.format( "请在回答完的最后一定要加上：\"⚠️ 当前可用条数不足【%s】条，为避免影响使用，请联系管理员充值！\"",member.getAvailableTimes());
+            promptStr += "\n\n" + remindText    ;
+        }
+        context.add(0,new SystemMessage(buildSystemPrompt(promptStr)));
         // 然后加用户的本次输入
         context.add(new UserMessage(input));
         String reply;
@@ -158,7 +159,7 @@ public class ChatService {
             Prompt prompt = new Prompt(context);
             reply = chatClient.prompt(prompt).call().content();
             // ✅ 成功后判断是否要扣次数
-            UserMembership member = membershipService.getMembership(userId);
+
             if (member.getLevel() == MembershipLevel.NORMAL) {
                 userMemberMapper.decreaseAvailableTimes(userId);
             }
@@ -170,7 +171,7 @@ public class ChatService {
                     truncate(input, 100)
             );
         }
-        saveChatMessage(sessionId,reply,biz);
+        saveChatMessage(sessionId,reply,biz,robotId);
         // 继续后面添加 AI 回复，裁剪上下文，保存等逻辑...
         context.add(new AssistantMessage(reply));
         // 裁剪上下文逻辑省略
@@ -184,25 +185,18 @@ public class ChatService {
         return new UserSessionInfo(userId,sessionId);
     }
 
-    public ChatSession getOrCreateSession(String userId) {
-        ChatSession session  = new ChatSession();
-        session.setUserId(userId);
-        session.setSessionId(UUID.randomUUID().toString());
-        session.setModelName(modelName);
-        session.setStatus(1);
-        chatSessionMapper.insert(session);
-        return session;
-    }
-    public ChatSession findBySessionIdAndUserId(String sessionId,String userId) {
-        return chatSessionMapper.findBySessionIdAndUserId(sessionId,userId);
-    }
-    public void saveChatMessage(String sessionId, String reply,BizRequest bizRequest) {
+    public void saveChatMessage(String sessionId, String reply, BizRequest bizRequest, String robotId) {
         ChatMessage msg = new ChatMessage();
         msg.setUserId(bizRequest.getFromUserId());
         msg.setSessionId(sessionId);
         msg.setMessageId(bizRequest.getMsgId());
         msg.setUserInput(bizRequest.getContent());
         msg.setModelReply(reply);
+        msg.setRobotId(robotId);
+        if(bizRequest.getChatTyp()==1){
+            msg.setGroupId(bizRequest.getToUserId());
+        }
+        msg.setChatType(bizRequest.getChatTyp());
         msg.setModelName(modelName);
         if(bizRequest.getMsgType()==1) {
             msg.setMessageType(bizRequest.getMsgType());
@@ -210,29 +204,7 @@ public class ChatService {
         msg.setStatus(0);
         chatMessageMapper.insert(msg);
     }
-//    public List<AIMessage> buildChatContext(String sessionId, String input) {
-//        // 1. 查询最近2轮对话
-//        List<ChatMessage> history = chatMessageMapper.findRecentMessagesBySessionId(sessionId, count);
-//
-//        // 2. 由于数据库查的是倒序，构造上下文时要翻转顺序
-//        Collections.reverse(history);
-//
-//        // 3. 构造上下文消息
-//        List<AIMessage> context = new ArrayList<>();
-//        for (ChatMessage h : history) {
-//            context.add(new AIMessage("user", h.getUserInput()));
-//            context.add(new AIMessage("assistant", h.getModelReply()));
-//        }
-//
-//        // 4. 添加当前用户输入
-//        context.add(new AIMessage("user", input));
-//
-//        return context;
-//    }
-    public void updateSessionActivity(ChatSession session) {
-        session.setLastActiveTime(LocalDateTime.now());
-        chatSessionMapper.updateLastActiveTime(session.getSessionId(), session.getLastActiveTime());
-    }
+
 
     public void confirmMessageStatus(List<MessageStatusItem> statusList) {
         List<String> successIds = new ArrayList<>();

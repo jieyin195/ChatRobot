@@ -11,10 +11,13 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.lang.reflect.Method;
 
 @Aspect
 @Component
@@ -26,13 +29,24 @@ public class SignCheckAspect {
         this.signUtil = signUtil;
     }
 
-    @Pointcut("@annotation(boss.jieyin.wechatbot.annotation.CheckSign)")
+    @Pointcut("@annotation(boss.jieyin.wechatbot.annotation.CheckSign)||@within(boss.jieyin.wechatbot.annotation.CheckSign)")
     public void checkSignPointcut() {}
 
-    @Around("checkSignPointcut()&& @annotation(checkSign)")
-    public Object around(ProceedingJoinPoint joinPoint, CheckSign checkSign) throws Throwable {
-        if (!checkSign.value()) {
-            // 不校验签名，直接放行
+    @Around("checkSignPointcut()")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        // 方法上查
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+        CheckSign checkSign = method.getAnnotation(CheckSign.class);
+
+        // 方法上没有，就类上查
+        if (checkSign == null) {
+            Class<?> clazz = joinPoint.getTarget().getClass();
+            checkSign = clazz.getAnnotation(CheckSign.class);
+        }
+
+        // 没有注解或 value = false，直接放行
+        if (checkSign == null || !checkSign.value()) {
             return joinPoint.proceed();
         }
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();

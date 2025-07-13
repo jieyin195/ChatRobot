@@ -13,23 +13,16 @@ import java.util.List;
 public interface ChatMessageMapper {
 
     // 根据 sessionId 查询消息
-    List<ChatMessage> findMessagesBySessionId(@Param("sessionId") String sessionId);
+//    List<ChatMessage> findMessagesBySessionId(@Param("sessionId") String sessionId);
 
     // 插入一条消息
     int insert(ChatMessage chatMessage);
 
     @Select("SELECT * FROM chat_message " +
-            "WHERE session_id = #{sessionId} " +
-            "ORDER BY created_at DESC " +
-            "LIMIT #{limit}") // 每轮2条消息
-    List<ChatMessage> findRecentMessagesBySessionId(@Param("sessionId") String sessionId,
-                                                    @Param("limit") int limit);
-
-    @Select("SELECT * FROM chat_message " +
-            "WHERE status = 0 "+
+            "WHERE status = 0 and robot_id=#{robotId} "+
             "ORDER BY message_id ASC "+
             "LIMIT #{limit}")
-    List<ChatMessage> fetchPulledMessages(@Param("limit") int limit);
+    List<ChatMessage> fetchPulledMessages(@Param("limit") int limit, @Param("robotId") String robotId);
 
     void markMessagesAsPulled(@Param("ids") List<Long> ids);
 

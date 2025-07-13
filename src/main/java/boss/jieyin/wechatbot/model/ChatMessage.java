@@ -8,8 +8,11 @@ import java.time.LocalDateTime;
 public class ChatMessage {
     private Long id;
     private String userId;
+    private String groupId;
     private String sessionId;
+    private String robotId;
     private Long messageId;
+    private Integer chatType;
     private Integer messageType;
     private String userInput;
     private String modelReply;

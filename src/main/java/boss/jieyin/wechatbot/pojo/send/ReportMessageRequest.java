@@ -7,13 +7,11 @@ import java.util.List;
 
 @Data
 public class ReportMessageRequest {
-    private User user;
     private List<BizRequest> bizRequest;
 
     @Override
     public String toString() {
         return "ReportMessageRequest{" +
-                "user=" + user +
                 ", bizRequest=" + bizRequest +
                 '}';
     }
