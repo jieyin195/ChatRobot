@@ -19,12 +19,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/chat/v1")
 @Slf4j
+@CheckSign
 public class ChatController {
     @Autowired
     private ChatService chatService;
 
     @PostMapping("/send")
-    @CheckSign(value = false)
     @CheckMembershipAccess
     public ResponseEntity<List<UserSessionInfo>> chat(@RequestBody ReportMessageRequest reportMessageRequest, HttpServletRequest request) {
         // 用户存储和会员制验证
