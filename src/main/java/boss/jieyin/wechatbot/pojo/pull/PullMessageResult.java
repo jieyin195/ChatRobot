@@ -6,6 +6,6 @@ import java.util.List;
 
 @Data
 public class PullMessageResult {
-    private List<Message> messageList;
+    private List<PullMessage> messageList;
     private String sessionId;
 }

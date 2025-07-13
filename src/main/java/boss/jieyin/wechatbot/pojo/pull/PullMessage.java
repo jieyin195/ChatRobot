@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class Message {
+public class PullMessage {
     private String message;
     private Integer msgType;
     private String toUserId;
