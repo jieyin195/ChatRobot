@@ -1,10 +1,12 @@
 package boss.jieyin.wechatbot.model;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
+@TableName("user_member")
 public class UserMemberEntity {
     private Long id;
     private String userId;

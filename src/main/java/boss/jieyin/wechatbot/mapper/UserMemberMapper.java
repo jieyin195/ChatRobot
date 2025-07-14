@@ -3,6 +3,8 @@ package boss.jieyin.wechatbot.mapper;
 import boss.jieyin.wechatbot.model.UserMemberEntity;
 import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
 @Mapper
 public interface UserMemberMapper {
     @Select("SELECT * " +
@@ -11,6 +13,19 @@ public interface UserMemberMapper {
             "        ORDER BY created_at DESC " +
             "        LIMIT 1 ")
     UserMemberEntity findByUserId(@Param("userId") String userId);
+
+    @Select({
+            "<script>",
+            "SELECT * FROM user_member",
+            "WHERE user_id IN",
+            "<foreach collection='userIds' item='id' open='(' separator=',' close=')'>",
+            "#{id}",
+            "</foreach>",
+            "AND is_deleted = 0",
+            "</script>"
+    })
+    List<UserMemberEntity> findByUserIds(@Param("userIds") List<String> userIds);
+
 
     @Update("UPDATE user_member" +
             "        SET available_times = available_times - 1," +
@@ -32,4 +47,6 @@ public interface UserMemberMapper {
             "            NOW(), " +
             "            NOW())")
     int insert(UserMemberEntity entity);
+
+    int batchUpdateByUserId(@Param("list") List<UserMemberEntity> list);
 }

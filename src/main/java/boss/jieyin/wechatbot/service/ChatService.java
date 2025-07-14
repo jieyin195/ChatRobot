@@ -128,7 +128,7 @@ public class ChatService {
         String userId = biz.getFromUserId();
         String input = biz.getContent();
         String sessionId = biz.getSessionId();
-        String referMsg = biz.getReferMsg().getContent();
+        ReferMsg referMsg = biz.getReferMsg();
         String robotId = request.getHeader("robotId");
         boolean isNewSession = (sessionId == null || sessionId.isBlank());
         if (isNewSession) {
@@ -140,14 +140,14 @@ public class ChatService {
         String promptStr = buildSystemPrompt(getCurrentTimeText());
 
         // 如果有引用消息，先把它加进去，格式化成辅助提示
-        if (StringUtils.isNotBlank(referMsg)) {
+        if (referMsg!=null && StringUtils.isNotBlank(referMsg.getContent())) {
             // 格式化引用文本，放在用户消息之前作为系统辅助内容
-            String refText = "注意：用户引用了之前的一句话，内容是：\"" + referMsg.trim() + "\"。请结合这句话理解用户的新问题。";
+            String refText = "注意：用户引用了之前的一句话，内容是：\"" + referMsg.getContent().trim() + "\"。请结合这句话理解用户的新问题。";
             promptStr += "\n\n" + refText;
             // 也可以用 SystemMessage 或 UserMessage 里加注释，常用做法是用 SystemMessage
         }
         UserMembership member = membershipService.getMembership(userId);
-        if(member.getAvailableTimes()<10){
+        if(member.getMemberId()<2&&member.getAvailableTimes()<10){
             String remindText = String.format( "请在回答完的最后一定要加上：\"⚠️ 当前可用条数不足【%s】条，为避免影响使用，请联系管理员充值！\"",member.getAvailableTimes());
             promptStr += "\n\n" + remindText    ;
         }
