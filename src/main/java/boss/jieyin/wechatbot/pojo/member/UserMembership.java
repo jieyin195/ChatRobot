@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 public class UserMembership {
     private Long id;
     private String userId;
-    private Long memberId;
+    private Integer memberId;
     private String type;
-    private int status;
-    private int availableTimes;
+    private Integer status;
+    private Integer availableTimes;
     private LocalDateTime expireTime;
     private MembershipLevel level;
 }

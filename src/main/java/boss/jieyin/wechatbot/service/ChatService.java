@@ -148,7 +148,13 @@ public class ChatService {
         }
         UserMembership member = membershipService.getMembership(userId);
         if(member.getMemberId()<2&&member.getAvailableTimes()<10){
-            String remindText = String.format( "请在回答完的最后一定要加上：\"⚠️ 当前可用条数不足【%s】条，为避免影响使用，请联系管理员充值！\"",member.getAvailableTimes());
+            String baseRemind = String.format("⚠️ 当前可用条数不足【%s】条，为了不影响您的正常使用，请联系管理员及时充值！", member.getAvailableTimes());
+            String remindText;
+            if (biz.getChatTyp()==1) {
+                remindText = String.format("请在回答完的最后一定要加上：\"@%s %s\"", biz.getFromUserName(), baseRemind);
+            } else {
+                remindText = String.format("请在回答完的最后一定要加上：\"%s\"", baseRemind);
+            }
             promptStr += "\n\n" + remindText    ;
         }
         context.add(0,new SystemMessage(buildSystemPrompt(promptStr)));

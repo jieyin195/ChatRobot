@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/chat/v1")
 @Slf4j
-@CheckSign
+//@CheckSign
 public class ChatController {
     @Autowired
     private ChatService chatService;
