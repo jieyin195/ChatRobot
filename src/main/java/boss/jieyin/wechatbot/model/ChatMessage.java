@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class ChatMessage {
     private Long id;
     private String userId;
-    private String groupId;
+    private String toUserId;
     private String sessionId;
     private String robotId;
     private Long messageId;
@@ -16,6 +16,7 @@ public class ChatMessage {
     private Integer messageType;
     private String userInput;
     private String modelReply;
+    private Long costTime;
     private String modelName;
     private Integer status;
     private LocalDateTime createdAt;

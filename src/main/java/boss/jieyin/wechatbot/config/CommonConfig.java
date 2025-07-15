@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class CommonConfig {
     @Bean
     public ChatClient chatClient(OpenAiChatModel chatModel){
-        return ChatClient.builder(chatModel).defaultSystem("你是一个小助手，如果你不会请不要乱答").build();
+        return ChatClient.builder(chatModel).build();
     }
 
     @Bean

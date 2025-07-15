@@ -1,8 +1,10 @@
 package boss.jieyin.wechatbot.pojo.send;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BizRequest {
     private String content;       // 内容
     private String fromUserId;    // 消息发送者的 userId

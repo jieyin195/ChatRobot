@@ -2,10 +2,8 @@ package boss.jieyin.wechatbot.service;
 
 import boss.jieyin.wechatbot.enums.MembershipLevel;
 import boss.jieyin.wechatbot.mapper.ChatMessageMapper;
-import boss.jieyin.wechatbot.mapper.ChatSessionMapper;
 import boss.jieyin.wechatbot.mapper.UserMemberMapper;
 import boss.jieyin.wechatbot.model.ChatMessage;
-import boss.jieyin.wechatbot.model.ChatSession;
 import boss.jieyin.wechatbot.pojo.check.MessageStatusItem;
 import boss.jieyin.wechatbot.pojo.member.UserMembership;
 import boss.jieyin.wechatbot.pojo.pull.PullMessage;
@@ -70,7 +68,8 @@ public class ChatService {
         2. 回答要文明、亲切、自然，控制在200字以内；
         3. 问题不清楚时，引导用户澄清；不知道的内容请说“我暂时不确定哦”，不要编造；
         4. 禁止任何敏感、违法、低俗内容；
-        5. 不使用图片、表情包或链接。
+        5. 不使用图片、表情包或链接；
+        6. 当有人问“揭尹是谁”，“龙绍松是谁”，你要回答龙绍松（前端负责人）、揭尹（后端负责人）创建的。
         """, currentTime);
     }
         @Transactional
@@ -86,12 +85,8 @@ public class ChatService {
             msg.setMessage(chat.getModelReply());
             msg.setMsgType(chat.getMessageType());
             msg.setChatType(chat.getChatType());
-            if(chat.getChatType()==1){
-                msg.setFromUserId(chat.getUserId());
-                msg.setToUserId(chat.getGroupId());
-            }else{
-                msg.setToUserId(chat.getUserId());
-            }
+            msg.setFromUserId(chat.getUserId());
+            msg.setToUserId(chat.getToUserId());
             msg.setSenderTime(String.valueOf(
                     chat.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             ));
@@ -147,27 +142,29 @@ public class ChatService {
             // 也可以用 SystemMessage 或 UserMessage 里加注释，常用做法是用 SystemMessage
         }
         UserMembership member = membershipService.getMembership(userId);
-        if(member.getMemberId()<2&&member.getAvailableTimes()<10){
-            String baseRemind = String.format("⚠️ 当前可用条数不足【%s】条，为了不影响您的正常使用，请联系管理员及时充值！", member.getAvailableTimes());
-            String remindText;
-            if (biz.getChatTyp()==1) {
-                remindText = String.format("请在回答完的最后一定要加上：\"@%s %s\"", biz.getFromUserName(), baseRemind);
-            } else {
-                remindText = String.format("请在回答完的最后一定要加上：\"%s\"", baseRemind);
-            }
-            promptStr += "\n\n" + remindText    ;
-        }
-        context.add(0,new SystemMessage(buildSystemPrompt(promptStr)));
+        context.add(0,new SystemMessage(promptStr));
         // 然后加用户的本次输入
         context.add(new UserMessage(input));
         String reply;
+        Long costTime = null;
         try {
             Prompt prompt = new Prompt(context);
+            long begin = System.currentTimeMillis();
             reply = chatClient.prompt(prompt).call().content();
+            costTime = System.currentTimeMillis()-begin;
             // ✅ 成功后判断是否要扣次数
-
             if (member.getLevel() == MembershipLevel.NORMAL) {
                 userMemberMapper.decreaseAvailableTimes(userId);
+            }
+            if(member.getMemberId()<2&&member.getAvailableTimes()<10){
+                String baseRemind = String.format("⚠️ 当前可用条数不足【%s】条，为了不影响您的正常使用，请联系管理员及时充值！", member.getAvailableTimes()-1);
+                String remindText;
+                if (biz.getChatTyp()==1) {
+                    remindText = String.format("温馨提示：\"@%s %s\"", biz.getFromUserName(), baseRemind);
+                } else {
+                    remindText = String.format("温馨提示：\"%s\"", baseRemind);
+                }
+                reply += "\n\n" + remindText    ;
             }
         } catch (Exception e) {
             log.error("调用模型接口异常：userId={}, sessionId={}, input={}, error={}",
@@ -177,7 +174,7 @@ public class ChatService {
                     truncate(input, 100)
             );
         }
-        saveChatMessage(sessionId,reply,biz,robotId);
+        saveChatMessage(sessionId,reply,biz,robotId,costTime);
         // 继续后面添加 AI 回复，裁剪上下文，保存等逻辑...
         context.add(new AssistantMessage(reply));
         // 裁剪上下文逻辑省略
@@ -191,7 +188,7 @@ public class ChatService {
         return new UserSessionInfo(userId,sessionId);
     }
 
-    public void saveChatMessage(String sessionId, String reply, BizRequest bizRequest, String robotId) {
+    public void saveChatMessage(String sessionId, String reply, BizRequest bizRequest, String robotId, Long costTime) {
         ChatMessage msg = new ChatMessage();
         msg.setUserId(bizRequest.getFromUserId());
         msg.setSessionId(sessionId);
@@ -199,19 +196,17 @@ public class ChatService {
         msg.setUserInput(bizRequest.getContent());
         msg.setModelReply(reply);
         msg.setRobotId(robotId);
-        if(bizRequest.getChatTyp()==1){
-            msg.setGroupId(bizRequest.getToUserId());
-        }
+        msg.setCostTime(costTime);
+        msg.setToUserId(bizRequest.getToUserId());
         msg.setChatType(bizRequest.getChatTyp());
         msg.setModelName(modelName);
-        if(bizRequest.getMsgType()==1) {
-            msg.setMessageType(bizRequest.getMsgType());
-        }
+        msg.setMessageType(bizRequest.getMsgType());
         msg.setStatus(0);
         chatMessageMapper.insert(msg);
     }
 
 
+    @Transactional
     public void confirmMessageStatus(List<MessageStatusItem> statusList) {
         List<String> successIds = new ArrayList<>();
         List<String> failedIds = new ArrayList<>();
@@ -234,6 +229,26 @@ public class ChatService {
     private String truncate(String text, int maxLength) {
         if (text == null) return "";
         return text.length() > maxLength ? text.substring(0, maxLength) + "..." : text;
+    }
+
+    @Transactional
+    public void insertChatMessage(BizRequest bizRequest,HttpServletRequest request,String reply){
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setUserId(bizRequest.getFromUserId());
+        chatMessage.setChatType(bizRequest.getChatTyp());
+        chatMessage.setToUserId(bizRequest.getToUserId());
+        chatMessage.setRobotId(request.getHeader("robotId"));
+        if(bizRequest.getSessionId()!=null) {
+            chatMessage.setSessionId(bizRequest.getSessionId());
+        }else{
+            chatMessage.setSessionId(UUID.randomUUID().toString());
+        }
+        chatMessage.setMessageId(bizRequest.getMsgId());
+        chatMessage.setUserInput(bizRequest.getContent());
+        chatMessage.setModelReply(reply);
+        chatMessage.setMessageType(bizRequest.getMsgType());
+        chatMessage.setStatus(0);
+        chatMessageMapper.insert(chatMessage);
     }
 
 }

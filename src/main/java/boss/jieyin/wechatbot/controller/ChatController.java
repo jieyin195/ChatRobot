@@ -1,7 +1,6 @@
 package boss.jieyin.wechatbot.controller;
 
 import boss.jieyin.wechatbot.annotation.CheckMembershipAccess;
-import boss.jieyin.wechatbot.annotation.CheckSign;
 import boss.jieyin.wechatbot.pojo.ResponseEntity;
 import boss.jieyin.wechatbot.pojo.check.CheckRequest;
 import boss.jieyin.wechatbot.pojo.pull.PullMessage;
@@ -27,8 +26,6 @@ public class ChatController {
     @PostMapping("/send")
     @CheckMembershipAccess
     public ResponseEntity<List<UserSessionInfo>> chat(@RequestBody ReportMessageRequest reportMessageRequest, HttpServletRequest request) {
-        // 用户存储和会员制验证
-
         // 聊天上传
         String bizNo = request.getHeader("bizNo");
         log.info("send此次请求的单号:{},\n\n请求体:{}",bizNo,reportMessageRequest);
