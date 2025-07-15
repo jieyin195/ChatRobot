@@ -18,7 +18,7 @@ spring:
       base-url: https://api.openai.com（记住不要加/v1）
       chat:
         options:
-          model: gpt-4o-mini
+          model: gpt-4.1
 ```
 
 > 📌 注意事项：
